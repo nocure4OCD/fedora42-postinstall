@@ -37,12 +37,31 @@ git clone https://github.com/nocure4OCD/fedora42-postinstall.git
 cd fedora42-postinstall
 ```
 
-Optional flags will be added soon to toggle optional groups like:
+✅ New Command-Line Flags (All ON by Default)
+You can now disable any group by running the script with flags like:
+```
+bash fedora42_postinstall.sh --no-gaming --no-comm --no-creative
+```
+Supported Flags:
+--no-security – Skip ProtonVPN and UFW
 
-- `--no-gaming` — Skip gaming tools installation
-- `--no-comm` — Skip communication/media apps installation
-- `--vpn=no` — Skip ProtonVPN installation
-- `--zsh=no` — Skip Oh My Zsh setup
+--no-multimedia – Skip media codecs
+
+--no-power – Skip TLP and Powertop
+
+--no-gaming – Skip Steam, Heroic, Lutris, Bottles
+
+--no-productivity – Skip Boxes, Calendar, Obsidian, Thunderbird, etc.
+
+--no-creative – Skip Krita, Okular, Master PDF, Neovim, etc.
+
+--no-comm – Skip Signal, Simplex, Zed, Spotify
+
+--no-zsh – Skip Oh My Zsh + Powerlevel10k
+
+--no-theme – Skip Qogir + Flat Remix GNOME themes
+
+--no-extensions – Skip GNOME extensions
 
 The script includes a **sudo keep-alive** function to prevent timeout issues during long operations. It will also automatically install and enable the necessary GNOME extensions and configure **Flatpak apps** with `--user` to avoid conflicts with system-wide installations.
 
