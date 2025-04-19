@@ -60,6 +60,12 @@ keep_sudo_alive() {
     trap 'kill ${SUDO_PID} 2>/dev/null' EXIT
 }
 
+kill_sudo() {
+    info "Ending sudo session"
+    kill ${SUDO_PID} 2>/dev/null
+    trap - EXIT
+}
+
 # ===================
 # Package Management
 # ===================
@@ -67,23 +73,33 @@ setup_repos() {
     info "Configuring system repositories"
     local fedora_ver=$(rpm -E %fedora)
 
+    SUDO_REQUIRED=true
+    (( ${FLAGS[security]} || ${FLAGS[multimedia]} )) && keep_sudo_alive
+
     sudo dnf upgrade --refresh -y
     sudo dnf install -y \
         "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedora_ver}.noarch.rpm" \
         "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedora_ver}.noarch.rpm"
 
-    sudo dnf install -y flatpak gnome-software-plugin-flatpak
+    command -v flatpak >/dev/null 2>&1 || sudo dnf install -y flatpak gnome-software-plugin-flatpak
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
 }
 
 install_core_utilities() {
     info "Installing core utilities"
+    SUDO_REQUIRED=true
+    keep_sudo_alive
     sudo dnf install -y zsh git curl wget jq unzip htop gnome-tweaks gnome-extensions-app chrome-gnome-shell
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
 }
 
 install_security() {
     info "Installing UFW and ProtonVPN"
     local tmp_rpm=$(mktemp)
+    SUDO_REQUIRED=true
+    keep_sudo_alive
     wget -qO "${tmp_rpm}" "https://repo.protonvpn.com/fedora-$(rpm -E %fedora)-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm"
     sudo dnf install -y ufw "${tmp_rpm}" proton-vpn-gnome-desktop
     rm -f "${tmp_rpm}"
@@ -100,23 +116,34 @@ Hidden=false
 X-GNOME-Autostart-enabled=true
 Name=ProtonVPN
 EOF
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
 }
 
 install_multimedia() {
     info "Installing multimedia codecs"
+    SUDO_REQUIRED=true
+    keep_sudo_alive
     sudo dnf groupupdate -y multimedia --setop='install_weak_deps=False' --exclude=gstreamer1-plugins-bad-free-devel
     sudo dnf install -y gstreamer1-plugins-{bad-*,good-*,base} gstreamer1-plugin-openh264 gstreamer1-libav lame* ffmpeg --allowerasing
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
 }
 
 install_power() {
     info "Installing power management tools"
+    SUDO_REQUIRED=true
+    keep_sudo_alive
     sudo dnf install -y tlp powertop
     sudo systemctl enable tlp
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
 }
 
 install_gaming() {
     info "Installing gaming tools"
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    SUDO_REQUIRED=true
+    keep_sudo_alive
     sudo dnf install -y steam gamemode libva libva-utils libvdpau
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
     flatpak install -y --user flathub \
         com.heroicgameslauncher.hgl \
         net.davidotek.pupgui2 \
@@ -158,29 +185,47 @@ install_comm() {
 
 install_zsh() {
     info "Setting up Oh My Zsh and Powerlevel10k"
-    [[ $SHELL != *zsh ]] && chsh -s "$(command -v zsh)"
-    export RUNZSH=no
-    [[ -d "$HOME/.oh-my-zsh" ]] || sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-    grep -q '^ZSH_THEME=' ~/.zshrc && \
-        sed -i 's|^ZSH_THEME=.*|ZSH_THEME=\"powerlevel10k/powerlevel10k\"|' ~/.zshrc || \
-        echo 'ZSH_THEME=\"powerlevel10k/powerlevel10k\"' >> ~/.zshrc
+    if [[ $SHELL != *zsh ]]; then
+        SUDO_REQUIRED=true
+        keep_sudo_alive
+        sudo chsh -s "$(command -v zsh)"
+        [[ $SUDO_REQUIRED = true ]] && kill_sudo
+    fi
+
+    if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+        export RUNZSH=no
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+        git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+        grep -q '^ZSH_THEME=' ~/.zshrc && \
+            sed -i 's|^ZSH_THEME=.*|ZSH_THEME="powerlevel10k/powerlevel10k"|' ~/.zshrc || \
+            echo 'ZSH_THEME="powerlevel10k/powerlevel10k"' >> ~/.zshrc
+    fi
 }
 
 install_themes() {
     info "Installing GNOME themes"
+    local tmp_dir=$(mktemp -d)
+    SUDO_REQUIRED=true
+    keep_sudo_alive
+
     mkdir -p ~/.themes ~/.icons
-    git clone --depth=1 https://github.com/vinceliuice/Qogir-theme.git /tmp/Qogir-theme
-    /tmp/Qogir-theme/install.sh -d ~/.themes
-    /tmp/Qogir-theme/install.sh -d ~/.icons -t default -c standard
-    git clone --depth=1 https://github.com/vinceliuice/Qogir-icon-theme.git /tmp/Qogir-icon-theme
-    /tmp/Qogir-icon-theme/install.sh -d ~/.icons
-    git clone --depth=1 https://github.com/daniruiz/flat-remix-gnome.git /tmp/flat-remix-gnome
-    cp -r /tmp/flat-remix-gnome/Flat* ~/.themes/
+
+    git clone --depth=1 https://github.com/vinceliuice/Qogir-theme.git "${tmp_dir}/Qogir-theme"
+    "${tmp_dir}/Qogir-theme/install.sh" -d ~/.themes
+    "${tmp_dir}/Qogir-theme/install.sh" -d ~/.icons -t default -c standard
+
+    git clone --depth=1 https://github.com/vinceliuice/Qogir-icon-theme.git "${tmp_dir}/Qogir-icon-theme"
+    "${tmp_dir}/Qogir-icon-theme/install.sh" -d ~/.icons
+
+    git clone --depth=1 https://github.com/daniruiz/flat-remix-gnome.git "${tmp_dir}/flat-remix-gnome"
+    cp -r "${tmp_dir}/flat-remix-gnome/Flat*" ~/.themes/
+
     gsettings set org.gnome.desktop.interface gtk-theme "Qogir"
-    gsettings set org.gnome.desktop.interface icon-theme "Qogir"
+    gsettings set org.gnome.desktop.interface icon-theme "Qogir-icon-theme"
     gsettings set org.gnome.desktop.interface cursor-theme "Qogir"
     gsettings set org.gnome.shell.extensions.user-theme name "Flat-Remix-GNOME-Dark"
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
+    rm -rf "${tmp_dir}"
 }
 
 install_extensions() {
@@ -191,6 +236,8 @@ install_extensions() {
         "caffeine@patapon.info"
         "openweather-extension@jenslody.de"
     )
+    SUDO_REQUIRED=true
+    keep_sudo_alive
     for uuid in "${extensions[@]}"; do
         ext_name="${uuid%%@*}"
         ext_id=$(curl -s "https://extensions.gnome.org/extension-query/?search=$ext_name" | jq -r ".extensions[] | select(.uuid==\"$uuid\") | .pk" | head -n1)
@@ -208,12 +255,13 @@ install_extensions() {
             warn "Extension $uuid not found"
         fi
     done
+    [[ $SUDO_REQUIRED = true ]] && kill_sudo
 }
 
 main() {
     parse_flags "$@"
     check_requirements
-    keep_sudo_alive
+
     setup_repos
     install_core_utilities
 
