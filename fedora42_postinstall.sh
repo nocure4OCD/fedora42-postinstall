@@ -53,7 +53,7 @@ check_root_and_network() {
 keep_sudo_alive() { while true; do sudo -n true; sleep 60; done }
 start_sudo_keepalive() { sudo -v; keep_sudo_alive & SUDO_PID=$!; trap "kill $SUDO_PID" EXIT; }
 
-# === System Setup Functions ===
+# === System Setup ===
 setup_repos() {
   info "Updating system..."
   sudo dnf upgrade --refresh -y
@@ -73,9 +73,30 @@ setup_repos() {
   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 }
 
+install_powerlevel10k_fonts() {
+  info "Installing MesloLGS Nerd Fonts for Powerlevel10k..."
+  FONT_DIR="$HOME/.local/share/fonts"
+  mkdir -p "$FONT_DIR"
+  MESLO_FONTS=(
+    "MesloLGS NF Regular.ttf"
+    "MesloLGS NF Bold.ttf"
+    "MesloLGS NF Italic.ttf"
+    "MesloLGS NF Bold Italic.ttf"
+  )
+  BASE_URL="https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/Meslo/L/Regular/complete"
+  for font in "${MESLO_FONTS[@]}"; do
+    if [[ ! -f "$FONT_DIR/$font" ]]; then
+      wget -q --show-progress -O "$FONT_DIR/$font" "$BASE_URL/${font// /%20}"
+    else
+      info "$font already exists, skipping."
+    fi
+  done
+  fc-cache -fv "$FONT_DIR"
+}
+
 install_core_utilities() {
   info "Installing core utilities..."
-  PKGS=(zsh git curl wget jq unzip htop gnome-tweaks gnome-extensions-app chrome-gnome-shell)
+  PKGS=(zsh git curl wget jq unzip htop gnome-tweaks gnome-extensions-app alacritty)
   for pkg in "${PKGS[@]}"; do
     if rpm -q "$pkg" &>/dev/null; then
       info "$pkg already installed, skipping."
@@ -83,196 +104,23 @@ install_core_utilities() {
       sudo dnf install -y "$pkg"
     fi
   done
-}
-
-install_security() {
-  info "Installing UFW and ProtonVPN..."
-  if ! rpm -q ufw &>/dev/null; then
-    sudo dnf install -y ufw
-    sudo systemctl enable ufw
-    sudo ufw --force enable
-  else
-    info "ufw already installed, skipping."
-  fi
-  FEDORA_VERSION=$(rpm -E %fedora)
-  if ! rpm -q proton-vpn-gnome-desktop &>/dev/null; then
-    TMP_RPM="/tmp/protonvpn.rpm"
-    wget -qO "$TMP_RPM" "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm"
-    sudo dnf install -y "$TMP_RPM"
-    sudo dnf install -y proton-vpn-gnome-desktop
-    rm -f "$TMP_RPM"
-    mkdir -p "$HOME/.config/autostart"
-    cat > "$HOME/.config/autostart/protonvpn.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Exec=protonvpn-gui
-Hidden=false
-X-GNOME-Autostart-enabled=true
-Name=ProtonVPN
-EOF
-  else
-    info "ProtonVPN already installed, skipping."
-  fi
-}
-
-install_multimedia() {
-  info "Installing multimedia codecs..."
-  # Check for ffmpeg as a proxy for this group
-  if rpm -q ffmpeg &>/dev/null; then
-    info "Multimedia codecs already installed, skipping."
-    return
-  fi
-  sudo dnf groupupdate -y multimedia --setop='install_weak_deps=False' --exclude=gstreamer1-plugins-bad-free-devel
-  sudo dnf install -y gstreamer1-plugins-{bad-*,good-*,base} gstreamer1-plugin-openh264 gstreamer1-libav lame* ffmpeg --allowerasing
-}
-
-install_power() {
-  info "Installing power management tools..."
-  if rpm -q tlp &>/dev/null; then
-    info "Power tools already installed, skipping."
-    return
-  fi
-  sudo dnf install -y tlp powertop
-  sudo systemctl enable tlp
-}
-
-install_gaming() {
-  info "Installing gaming tools..."
-  # Check for Steam as a proxy for this group
-  if rpm -q steam &>/dev/null; then
-    info "Gaming tools already installed, skipping."
-  else
-    sudo dnf install -y steam gamemode libva libva-utils libvdpau
-  fi
-  # Flatpak games
-  FLATPAK_GAMES=(
-    com.heroicgameslauncher.hgl
-    net.davidotek.pupgui2
-    net.lutris.Lutris
-    com.usebottles.bottles
-  )
-  for app in "${FLATPAK_GAMES[@]}"; do
-    if flatpak list --app | grep -q "$app"; then
-      info "Flatpak $app already installed, skipping."
-    else
-      flatpak install -y --user flathub "$app"
-    fi
-  done
-}
-
-install_productivity() {
-  info "Installing productivity tools..."
-  FLATPAK_APPS=(
-    org.gnome.Boxes
-    org.gnome.Calendar
-    com.github.tchx84.Flatseal
-    com.github.johnfactotum.Foliate
-    md.obsidian.Obsidian
-    net.cozic.joplindesktop
-    org.mozilla.Thunderbird
-  )
-  for app in "${FLATPAK_APPS[@]}"; do
-    if flatpak list --app | grep -q "$app"; then
-      info "Flatpak $app already installed, skipping."
-    else
-      flatpak install -y --user flathub "$app"
-    fi
-  done
-}
-
-install_creative() {
-  info "Installing creative/media tools..."
-  FLATPAK_APPS=(
-    org.kde.okular
-    org.kde.krita
-    org.darktable.Darktable
-    com.github.wnxemoark.MasterPDFEditor
-    io.neovim.nvim
-    org.kde.ark
-  )
-  for app in "${FLATPAK_APPS[@]}"; do
-    if flatpak list --app | grep -q "$app"; then
-      info "Flatpak $app already installed, skipping."
-    else
-      flatpak install -y --user flathub "$app"
-    fi
-  done
-}
-
-install_comm() {
-  info "Installing communication apps..."
-  FLATPAK_APPS=(
-    org.signal.Signal
-    chat.simplex.Simplex
-    com.spotify.Client
-    dev.zed.Zed
-  )
-  for app in "${FLATPAK_APPS[@]}"; do
-    if flatpak list --app | grep -q "$app"; then
-      info "Flatpak $app already installed, skipping."
-    else
-      flatpak install -y --user flathub "$app"
-    fi
-  done
-}
-
-install_zsh() {
-  info "Setting up Oh My Zsh and Powerlevel10k..."
-  if [[ $SHELL == *zsh ]]; then
-    info "Zsh is already the default shell."
-  else
-    chsh -s "$(command -v zsh)"
+  if [[ "$SHELL" != *zsh ]]; then
+    chsh -s $(which zsh)
   fi
   export RUNZSH=no
   if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-  else
-    info "Oh My Zsh already installed, skipping."
   fi
   if [[ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k" ]]; then
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-  else
-    info "Powerlevel10k theme already installed, skipping."
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
+      "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
   fi
   if grep -q '^ZSH_THEME=' ~/.zshrc; then
-    sed -i 's|^ZSH_THEME=.*|ZSH_THEME="powerlevel10k/powerlevel10k"|' ~/.zshrc
+    sed -i 's|^ZSH_THEME=.*|ZSH_THEME=\"powerlevel10k/powerlevel10k\"|' ~/.zshrc
   else
-    echo 'ZSH_THEME="powerlevel10k/powerlevel10k"' >> ~/.zshrc
+    echo 'ZSH_THEME=\"powerlevel10k/powerlevel10k\"' >> ~/.zshrc
   fi
-}
-
-install_themes() {
-  info "Installing GNOME themes..."
-  mkdir -p ~/.themes ~/.icons
-  TMPDIR=$(mktemp -d)
-  # Qogir GTK theme
-  if [[ ! -d ~/.themes/Qogir ]]; then
-    git clone --depth=1 https://github.com/vinceliuice/Qogir-theme.git "$TMPDIR/Qogir-theme" || err "Failed to clone Qogir-theme"
-    "$TMPDIR/Qogir-theme/install.sh" -d ~/.themes
-    "$TMPDIR/Qogir-theme/install.sh" -d ~/.icons -t default -c standard
-  else
-    info "Qogir GTK theme already installed, skipping."
-  fi
-  # Qogir icon theme
-  if [[ ! -d ~/.icons/Qogir-icon-theme ]]; then
-    git clone --depth=1 https://github.com/vinceliuice/Qogir-icon-theme.git "$TMPDIR/Qogir-icon-theme" || err "Failed to clone Qogir-icon-theme"
-    "$TMPDIR/Qogir-icon-theme/install.sh" -d ~/.icons
-  else
-    info "Qogir icon theme already installed, skipping."
-  fi
-  # Flat Remix theme
-  if [[ ! -d ~/.themes/Flat-Remix-GNOME-Dark ]]; then
-    git clone --depth=1 https://github.com/daniruiz/flat-remix-gnome.git "$TMPDIR/flat-remix-gnome" || err "Failed to clone flat-remix-gnome"
-    cp -r "$TMPDIR/flat-remix-gnome/Flat"* ~/.themes/
-  else
-    info "Flat Remix GNOME theme already installed, skipping."
-  fi
-  # Set appearance
-  gsettings set org.gnome.desktop.interface gtk-theme "Qogir"
-  gsettings set org.gnome.desktop.interface icon-theme "Qogir-icon-theme"
-  gsettings set org.gnome.desktop.interface cursor-theme "Qogir"
-  gsettings set org.gnome.shell.extensions.user-theme name "Flat-Remix-GNOME-Dark"
-  rm -rf "$TMPDIR"
+  install_powerlevel10k_fonts
 }
 
 install_extensions() {
@@ -280,8 +128,13 @@ install_extensions() {
   EXTENSIONS=(
     "blur-my-shell@aunetx"
     "dash-to-dock@micxgx.gmail.com"
-    "caffeine@patapon.info"
-    "openweather-extension@jenslody.de"
+    "alphabetical-app-grid@stuarthayhurst"
+    "fuzzy-app-search@noobsai.github.com"
+    "removable-drive-menu@gnome-shell-extensions.gcampax.github.com"
+    "world-clock-extension@gnome-shell-extensions.gcampax.github.com"
+    "user-theme@gnome-shell-extensions.gcampax.github.com"
+    "weather-or-not@adel.gadllah@gmail.com"
+    "apps-menu@gnome-shell-extensions.gcampax.github.com"
   )
   for UUID in "${EXTENSIONS[@]}"; do
     EXT_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID"
@@ -290,7 +143,7 @@ install_extensions() {
       continue
     fi
     EXT_NAME="${UUID%%@*}"
-    EXT_ID=$(curl -s "https://extensions.gnome.org/extension-query/?search=$EXT_NAME" | jq -r ".extensions[] | select(.uuid==\"$UUID\") | .pk" | head -n 1) || err "Failed to query extension API"
+    EXT_ID=$(curl -s "https://extensions.gnome.org/extension-query/?search=$EXT_NAME" | jq -r ".extensions[] | select(.uuid==\"$UUID\") | .pk" | head -n 1)
     if [[ -n "$EXT_ID" ]]; then
       SHELL_VER=$(gnome-shell --version | awk '{print $3}')
       VERSION=$(curl -s "https://extensions.gnome.org/extension-info/?pk=$EXT_ID" | jq -r --arg SHELL_VER "$SHELL_VER" '.shell_version_map[$SHELL_VER] // .shell_version_map | to_entries | last.value')
@@ -306,23 +159,71 @@ install_extensions() {
   done
 }
 
-install_nvidia() {
-  info "Installing NVIDIA drivers and monitoring tools..."
-  if rpm -q akmod-nvidia &>/dev/null; then
-    info "NVIDIA drivers already installed, skipping."
-    return
-  fi
-  FEDORA_VERSION=$(rpm -E %fedora)
-  sudo dnf install -y kernel-devel-$(uname -r)
-  sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-power xorg-x11-drv-nvidia-cuda-libs
-  if ! flatpak list --app | grep -q io.github.realmazharhussain.NvidiaGpuStatsTool; then
-    flatpak install -y --user flathub io.github.realmazharhussain.NvidiaGpuStatsTool
-  else
-    info "NvidiaGpuStatsTool already installed, skipping."
-  fi
+install_flatpaks() {
+  info "Installing Flatpak applications..."
+  FLATPAKS=(
+    com.github.tchx84.Flatseal
+    com.heroicgameslauncher.hgl
+    com.obsproject.Studio
+    ch.protonmail.protonmail-bridge
+    com.brave.Browser
+    dev.zed.Zed
+    chat.simplex.Simplex
+    md.obsidian.Obsidian
+    io.github.realmazharhussain.NvidiaGpuStatsTool
+    io.github.mimbrero.WhatsAppDesktop
+    io.neovim.nvim
+    net.cozic.joplin_desktop
+    net.davidotek.pupgui2
+    net.lutris.Lutris
+    org.gnome.Extensions
+    org.gnome.DejaDup
+    org.kde.krita
+    org.signal.Signal
+    org.telegram.desktop
+    org.videolan.VLC
+    org.gaias.sky
+    us.zoom.Zoom
+    re.sonny.Ear
+    one.zen.zen
+    io.github.fabrialberio.Simplexity
+    com.github.Matoking.protonupqt
+    dev.mixer.Mixer
+    io.missioncenter.MissionCenter
+  )
+  for app in "${FLATPAKS[@]}"; do
+    if flatpak list --app | grep -q "$app"; then
+      info "Flatpak $app already installed, skipping."
+    else
+      flatpak install -y --user flathub "$app"
+    fi
+  done
 }
 
-# === Main Routine ===
+install_themes() {
+  info "Installing GNOME themes..."
+  mkdir -p ~/.themes ~/.icons
+  TMPDIR=$(mktemp -d)
+  if [[ ! -d ~/.themes/Qogir ]]; then
+    git clone --depth=1 https://github.com/vinceliuice/Qogir-theme.git "$TMPDIR/Qogir-theme"
+    "$TMPDIR/Qogir-theme/install.sh" -d ~/.themes -t all
+    "$TMPDIR/Qogir-theme/install.sh" -d ~/.icons -t default -c standard
+  fi
+  if [[ ! -d ~/.icons/Qogir ]]; then
+    git clone --depth=1 https://github.com/vinceliuice/Qogir-icon-theme.git "$TMPDIR/Qogir-icon-theme"
+    "$TMPDIR/Qogir-icon-theme/install.sh" -d ~/.icons
+  fi
+  if [[ ! -d ~/.themes/Flat-Remix-GNOME-Darkest ]]; then
+    git clone --depth=1 https://github.com/daniruiz/flat-remix-gnome.git "$TMPDIR/flat-remix-gnome"
+    cp -r "$TMPDIR/flat-remix-gnome/Flat-Remix-GNOME-Darkest" ~/.themes/
+  fi
+  gsettings set org.gnome.desktop.interface gtk-theme "Qogir"
+  gsettings set org.gnome.desktop.interface icon-theme "Qogir"
+  gsettings set org.gnome.desktop.interface cursor-theme "Qogir"
+  gsettings set org.gnome.shell.extensions.user-theme name "Qogir"
+  rm -rf "$TMPDIR"
+}
+
 main() {
   parse_flags "$@"
   check_requirements
@@ -330,19 +231,9 @@ main() {
   start_sudo_keepalive
   setup_repos
   install_core_utilities
-  (( FLAGS[security] ))     && install_security
-  (( FLAGS[multimedia] ))   && install_multimedia
-  (( FLAGS[power] ))        && install_power
-  (( FLAGS[gaming] ))       && install_gaming
-  (( FLAGS[productivity] )) && install_productivity
-  (( FLAGS[creative] ))     && install_creative
-  (( FLAGS[comm] ))         && install_comm
-  (( FLAGS[zsh] ))          && install_zsh
-  (( FLAGS[themes] ))       && install_themes
-  (( FLAGS[extensions] ))   && install_extensions
-  (( FLAGS[nvidia] ))       && install_nvidia
-  info "Cleaning temporary files"
-  rm -rf /tmp/{Qogir-*,flat-remix-*,protonvpn.*}
+  (( FLAGS[extensions] )) && install_extensions
+  install_flatpaks
+  (( FLAGS[themes] )) && install_themes
   echo -e "\n\033[1;32mSetup complete. Please reboot your system.\033[0m"
 }
 
