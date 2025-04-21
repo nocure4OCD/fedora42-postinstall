@@ -34,18 +34,31 @@ curl -s https://raw.githubusercontent.com/nocure4OCD/fedora42-postinstall/main/f
 ```
 
 🧱 Modules (Toggle with --no-[flag] or --nvidia)
-Flag	Description
-security	UFW + ProtonVPN
-multimedia	Codecs + ffmpeg + gstreamer
-power	TLP and Powertop
-gaming	Steam, Lutris, Heroic, Bottles, ProtonUp
-productivity	Calendar, Boxes, Flatseal, Foliate
-creative	Krita, Darktable, PDF editors, Okular
-comm	Signal, Telegram, WhatsApp, Simplex, Zed
-zsh	Installs Oh My Zsh + Powerlevel10k
-themes	Qogir (installed + equipped), Flat-Remix
-extensions	GNOME shell extensions (see below)
-nvidia	Enables NVIDIA drivers + GPU Stats Tool
+
+Flag	Description...
+
+security	: UFW + ProtonVPN
+
+multimedia:	Codecs + ffmpeg + gstreamer
+
+power:	TLP and Powertop
+
+gaming:	Steam, Lutris, Heroic, Bottles, ProtonUp
+
+productivity:	Calendar, Boxes, Flatseal, Foliate
+
+creative: 	Krita, Darktable, PDF editors, Okular
+
+comm	: Signal, Telegram, WhatsApp, Simplex, Zed
+
+zsh:	Installs Oh My Zsh + Powerlevel10k
+
+themes:	Qogir (installed + equipped), Flat-Remix
+
+extensions:	GNOME shell extensions (see below)
+
+nvidia:	Enables NVIDIA drivers + GPU Stats Tool
+
 
 To skip a module:
 
