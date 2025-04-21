@@ -1,75 +1,211 @@
-# Fedora 42 Post-Install Script
+# Fedora 42 Post-Install Script 🎯
 
-This script automates the setup of a fresh Fedora 42 installation with a focus on privacy, productivity, media, gaming, and GNOME customization. It is ideal for personal or hybrid use.
+A fully modular and customizable post-installation script for Fedora 42 users who want a well-rounded, powerful desktop experience. This isn’t some ultra-minimalist or bloated mess—it’s a sane, thoughtfully curated setup for people with decent hardware and enough storage to actually enjoy their machine. If you’ve got a solid rig and want a blend of productivity, creativity, gaming, privacy, and polish, this script’s for you.
 
-## Installation (Quick Start)
+---
 
-Run this in your terminal to start the installation process:
+## 🔧 Features & Inclusions
+
+✅ Modular toggle support (`--no-[flag]` to disable a module) 
+
+✅ Flatpak + Flathub + RPM Fusion setup 
+
+✅ Alacritty as default terminal 
+
+✅ ZSH shell with Powerlevel10k theme 
+
+✅ MesloLGS Nerd Fonts (for Powerlevel10k) 
+
+✅ GNOME extensions auto-install & enable 
+
+✅ Qogir themes (GTK, icons, cursors, shell) and Flat-Remix GNOME Darkest 
+
+✅ Full suite of Flatpak applications 
+
+✅ Optional NVIDIA support 
+
+
+---
+
+## 🚀 How to Use
 
 ```bash
 curl -s https://raw.githubusercontent.com/nocure4OCD/fedora42-postinstall/main/fedora42_postinstall.sh | bash
 ```
 
-This command will download the script and execute it directly.
+🧱 Modules (Toggle with --no-[flag] or --nvidia)
+Flag	Description
+security	UFW + ProtonVPN
+multimedia	Codecs + ffmpeg + gstreamer
+power	TLP and Powertop
+gaming	Steam, Lutris, Heroic, Bottles, ProtonUp
+productivity	Calendar, Boxes, Flatseal, Foliate
+creative	Krita, Darktable, PDF editors, Okular
+comm	Signal, Telegram, WhatsApp, Simplex, Zed
+zsh	Installs Oh My Zsh + Powerlevel10k
+themes	Qogir (installed + equipped), Flat-Remix
+extensions	GNOME shell extensions (see below)
+nvidia	Enables NVIDIA drivers + GPU Stats Tool
 
-## Notes
+To skip a module:
 
-Before running the script, ensure you have **Git** and **curl** installed on your system. If not, you can install them with the following command:
-
-```bash
-sudo dnf install git curl -y
+```
+curl -s ... | bash -s -- --no-gaming --no-comm
 ```
 
-Additionally, this script requires an **internet connection** to fetch the necessary repositories and packages.
+To enable NVIDIA driver support:
 
-It is recommended that your system is up-to-date before running the script. You can do this by running:
-
-```bash
-sudo dnf upgrade --refresh -y
+```
+curl -s ... | bash -s -- --nvidia
 ```
 
-Make sure to run the script **as a regular user** (not root).
+📦 Flatpak Applications Installed
 
-If you prefer to manually update or modify the script from your GitHub repository, you can clone the repo to your system by running:
+    System & Productivity:
 
-```bash
-git clone https://github.com/nocure4OCD/fedora42-postinstall.git
-cd fedora42-postinstall
-```
+        com.github.tchx84.Flatseal
 
-✅ New Command-Line Flags (All ON by Default)
-You can now disable any group by running the script with flags like:
-```
-bash fedora42_postinstall.sh --no-gaming --no-comm --no-creative
-```
-Supported Flags:
---no-security – Skip ProtonVPN and UFW
+        org.gnome.Extensions
 
---no-multimedia – Skip media codecs
+        org.gnome.DejaDup
 
---no-power – Skip TLP and Powertop
+        org.gnome.Calendar
 
---no-gaming – Skip Steam, Heroic, Lutris, Bottles
+        org.gnome.Boxes
 
---no-productivity – Skip Boxes, Calendar, Obsidian, Thunderbird, etc.
+        com.github.johnfactotum.Foliate
 
---no-creative – Skip Krita, Okular, Master PDF, Neovim, etc.
+        md.obsidian.Obsidian
 
---no-comm – Skip Signal, Simplex, Zed, Spotify
+        net.cozic.joplin_desktop
 
---no-zsh – Skip Oh My Zsh + Powerlevel10k
+    Development & Utilities:
 
---no-theme – Skip Qogir + Flat Remix GNOME themes
+        dev.zed.Zed
 
---no-extensions – Skip GNOME extensions
+        io.neovim.nvim
 
-The script includes a **sudo keep-alive** function to prevent timeout issues during long operations. It will also automatically install and enable the necessary GNOME extensions and configure **Flatpak apps** with `--user` to avoid conflicts with system-wide installations.
+        com.github.Matoking.protonupqt
 
-## License
+        io.github.missioncenter.MissionCenter
 
-MIT License
+    Creative & Media:
 
-## Author
+        org.kde.krita
 
-nocure4OCD
-```
+        org.darktable.Darktable
+
+        com.github.wnxemoark.MasterPDFEditor
+
+        org.kde.okular
+
+        org.kde.ark
+
+        org.videolan.VLC
+
+        org.gaias.sky
+
+        re.sonny.Ear
+
+        dev.mixer.Mixer
+
+        one.zen.zen
+
+    Gaming:
+
+        com.heroicgameslauncher.hgl
+
+        net.lutris.Lutris
+
+        net.davidotek.pupgui2
+
+        com.usebottles.bottles
+
+    Communication:
+
+        org.signal.Signal
+
+        org.telegram.desktop
+
+        io.github.mimbrero.WhatsAppDesktop
+
+        chat.simplex.Simplex
+
+        us.zoom.Zoom
+
+    Privacy:
+
+        ch.protonmail.protonmail-bridge
+
+    NVIDIA (optional):
+
+        io.github.realmazharhussain.NvidiaGpuStatsTool
+
+🎨 Themes & Customizations
+
+    Equipped by Default:
+
+        Qogir GTK theme
+
+        Qogir Shell theme (default, dark, and light installed)
+
+        Qogir Icons
+
+        Qogir Cursors (standard/light)
+
+    Available (Not equipped):
+
+        Flat-Remix-GNOME-Darkest shell theme
+
+🧩 GNOME Extensions (Installed & Enabled)
+
+    Blur My Shell
+
+    Dash to Dock
+
+    Alphabetical App Grid
+
+    GNOME Fuzzy App Search
+
+    Removable Drive Menu
+
+    Remove World Clocks
+
+    User Themes
+
+    Weather or Not
+
+    Apps Menu
+
+🔠 Fonts
+
+The script automatically installs:
+
+    MesloLGS Nerd Fonts (Regular, Bold, Italic, Bold Italic)
+
+These fonts are required for proper rendering of the Powerlevel10k theme.
+🛠 Recommended Before Running
+
+Ensure your system is fully updated and Git is installed:
+
+sudo dnf update -y
+sudo dnf install -y git
+
+🧪 Tested On
+
+    Fedora 42 (Workstation Edition)
+
+    Both AMD and Intel/NVIDIA hardware
+
+    GNOME Shell 48
+
+🙌 Author
+
+Josh (aka nocure4OCD)
+GitHub: @nocure4OCD
+Licensed under MIT — Open to all!
+
+📣 Want to Contribute?
+
+Feel free to fork, open an issue, or suggest improvements!
+This script is meant to serve as a launchpad for Fedora users who want out-of-the-box comfort and customization.
