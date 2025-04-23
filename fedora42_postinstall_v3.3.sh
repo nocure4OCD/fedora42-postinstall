@@ -67,7 +67,7 @@ configurerepos() {
         https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm \
         https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm
     
-    sudo dnf config-manager --set-enabled fedora-cisco-openh264
+    sudo dnf install -y gstreamer1-plugin-openh264 mozilla-openh264
     sudo dnf groupupdate core -y
 }
 
