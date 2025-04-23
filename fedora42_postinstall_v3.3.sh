@@ -3,8 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # Fedora 42 Post-Install Script by Joshua Warren
-# Version 3.3 - Checksum issue resolved
-# Preserves all themes, apps, customizations, and extensions
+# Version 3.3 - dnf5 compatibility
 
 # ========================
 #    CONFIGURATION
@@ -66,9 +65,9 @@ configurerepos() {
     sudo dnf install -y \
         https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm \
         https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm
-    
+
     sudo dnf install -y gstreamer1-plugin-openh264 mozilla-openh264
-    sudo dnf groupupdate core -y
+    sudo dnf5 group upgrade "core" -y
 }
 
 # ========================
@@ -148,11 +147,11 @@ installprivacy() {
 
 installthemes() {
     [[ ${MODULES[THEMES]} -eq 1 ]] || return
-    
+
     log info "Installing themes and fonts..."
     sudo dnf copr enable user/qogir-theme -y
     sudo dnf install -y qogir-gtk-theme qogir-icon-theme qogir-cursor-theme
-    
+
     # Meslo Nerd Fonts
     sudo mkdir -p /usr/local/share/fonts
     local fonts=(
@@ -227,7 +226,7 @@ configurezsh() {
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
     git clone https://github.com/zsh-users/zsh-autosuggestions.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
-    
+
     sed -i 's/^ZSH_THEME=.*/ZSH_THEME="powerlevel10k\/powerlevel10k"/' ~/.zshrc
     cat >> ~/.zshrc <<EOF
 export PATH="\$HOME/.local/bin:\$PATH"
@@ -266,4 +265,3 @@ main() {
 }
 
 main "$@"
-
