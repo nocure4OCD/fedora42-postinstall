@@ -72,10 +72,10 @@ configure_repos() {
     
     # Static checksums for Fedora 42
     free_rpm="https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm"
-    free_sha256="REPLACE_WITH_ACTUAL_FREE_CHECKSUM"
+    free_sha256="853ae37df6c8da6d385e790bbd74c177b2ff87dba9fab3dc81ee9f684b93092b"
     
     nonfree_rpm="https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm"
-    nonfree_sha256="REPLACE_WITH_ACTUAL_NONFREE_CHECKSUM"
+    nonfree_sha256="80ed8bfee707d43ffe898c492133ae22ef8bc5273d3058c924b322163c6519b6"
 
     secure_download "$free_rpm" "${TMP_DIR}/rpmfusion-free.rpm" "$free_sha256"
     secure_download "$nonfree_rpm" "${TMP_DIR}/rpmfusion-nonfree.rpm" "$nonfree_sha256"
